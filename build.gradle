@@ -10,7 +10,7 @@ repositories {
 	mavenCentral()
 }
 
-def runeLiteVersion = '1.7.5'
+def runeLiteVersion = '1.8.6'
 
 dependencies {
 	compileOnly group: 'net.runelite', name:'client', version: runeLiteVersion
@@ -21,11 +21,14 @@ dependencies {
 	testImplementation 'junit:junit:4.12'
 	testImplementation group: 'net.runelite', name:'client', version: runeLiteVersion
 	testImplementation group: 'net.runelite', name:'jshell', version: runeLiteVersion
+
+	/* Actual user dependencies */
+	implementation 'se.michaelthelin.spotify:spotify-web-api-java:7.0.0'
 }
 
-group = 'com.example'
+group = 'com.spotify'
 version = '1.0-SNAPSHOT'
-sourceCompatibility = '1.8'
+sourceCompatibility = '1.15'
 
 tasks.withType(JavaCompile) {
 	options.encoding = 'UTF-8'
