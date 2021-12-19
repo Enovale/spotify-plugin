@@ -12,7 +12,7 @@ public class PlayingData {
     public Integer progress;
     public final Integer songLength;
 
-    public PlayingData(boolean paused,Long timestamp, BufferedImage image, String albumName, String trackName, String trackId, Integer progress, Integer sondLength) {
+    public PlayingData(boolean paused, Long timestamp, BufferedImage image, String albumName, String trackName, String trackId, Integer progress, Integer songLength) {
         this.paused = paused;
         this.timestamp = timestamp;
         this.image = image;
@@ -20,6 +20,6 @@ public class PlayingData {
         this.trackName = trackName;
         this.trackId = trackId;
         this.progress = progress;
-        this.songLength = sondLength;
+        this.songLength = songLength;
     }
 }

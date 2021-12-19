@@ -1,5 +1,6 @@
 package com.enova.spotify;
 
+import com.enova.spotify.providers.NoProviderInterface;
 import com.enova.spotify.providers.OSInterface;
 import com.enova.spotify.providers.ProviderInterface;
 import com.enova.spotify.providers.SpotifyInterface;
@@ -26,7 +27,9 @@ import java.util.concurrent.*;
 
 @Slf4j
 @PluginDescriptor(
-        name = "Spotify"
+        name = "Spotify",
+        description = "A plugin to display your currently playing music, and mute the game when it's playing.",
+        tags = {"media","music","spotify","playerctl","mute","pause","sound","volume","overlay","playing"}
 )
 public class SpotifyPlugin extends Plugin
 {
@@ -62,14 +65,12 @@ public class SpotifyPlugin extends Plugin
     @Override
     protected void startUp()
     {
-        switch (config.provider()) {
-            case OperatingSystem -> provider = new OSInterface(config, configManager);
-            case Spotify -> provider = new SpotifyInterface(config, configManager);
-        }
+        performFirstRun();
 
+        createProviderInstance();
         provider.attemptAuthentication();
-        overlay = new SpotifyOverlay();
-        overlayManager.add(overlay);
+
+        overlay = new SpotifyOverlay(config);
 
         backButton = NavigationButton.builder()
                 .tab(false)
@@ -96,6 +97,28 @@ public class SpotifyPlugin extends Plugin
         updateConfig();
     }
 
+    private void performFirstRun()
+    {
+        if(!config.firstRun()) {
+            JOptionPane.showConfirmDialog(null,
+                    "Please make sure to check the settings for this plugin or it will not do anything!",
+                    "Spotify Plugin", JOptionPane.DEFAULT_OPTION);
+            config.firstRun(true);
+        }
+    }
+
+    private void createProviderInstance()
+    {
+        if(currentApiCall != null) {
+            currentApiCall.cancel(true);
+        }
+        switch (config.provider()) {
+            case None -> provider = new NoProviderInterface(config, configManager);
+            case OperatingSystem -> provider = new OSInterface(config, configManager);
+            case Spotify -> provider = new SpotifyInterface(config, configManager);
+        }
+    }
+
     @Override
     protected void shutDown()
     {
@@ -106,11 +129,23 @@ public class SpotifyPlugin extends Plugin
     public void onConfigChanged(ConfigChanged event)
     {
         if (event.getGroup().equals(SpotifyConfig.GROUP)) {
+            switch (event.getKey()) {
+                case "firstrun" -> performFirstRun();
+                case "provider" -> {
+                    createProviderInstance();
+                    provider.attemptAuthentication();
+                }
+            }
             updateConfig();
         }
     }
 
     private void updateConfig() {
+        if(config.overlayEnabled() && provider.authenticated)
+            overlayManager.add(overlay);
+        else
+            overlayManager.remove(overlay);
+
         if(config.mediaControls()) {
             clientToolbar.addNavigation(backButton);
             clientToolbar.addNavigation(pauseButton);
@@ -126,15 +161,22 @@ public class SpotifyPlugin extends Plugin
     public void onGameStateChanged(GameStateChanged gameStateChanged)
     {
         provider.attemptAuthentication();
+        updateConfig();
     }
 
     @Subscribe
     public void onClientTick(ClientTick clientTick)
     {
+        if(!provider.authenticated)
+            return;
+
         try {
             if (currentApiCall != null && currentApiCall.isDone()) {
                 var playback = currentApiCall.get();
-                overlay.setPlayingData(playback);
+                if(config.treatPausedAsStopped() && (playback != null && playback.paused)) {
+                    playback = null;
+                }
+                overlay.setPlayingData(playback, provider.providerIcon);
                 if (config.mutingEnabled() && !isMuted()) {
                     if (playback != null) {
                         // Playing something
@@ -151,6 +193,9 @@ public class SpotifyPlugin extends Plugin
                     currentApiCall = null;
                 }
             }
+        } catch(CancellationException e) {
+            currentApiCall = null;
+            return;
         } catch (ExecutionException | InterruptedException e) {
             e.printStackTrace();
         }
@@ -159,6 +204,9 @@ public class SpotifyPlugin extends Plugin
     @Subscribe
     public void onGameTick(GameTick event)
     {
+        if(!provider.authenticated)
+            return;
+
         if (currentApiCall != null)
             currentApiCall.cancel(true);
         currentApiCall = provider.currentlyPlaying();

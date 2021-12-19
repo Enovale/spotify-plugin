@@ -5,6 +5,7 @@ import com.enova.spotify.SpotifyConfig;
 import com.enova.spotify.SpotifyPlugin;
 import com.jogamp.common.net.Uri;
 import net.runelite.client.config.ConfigManager;
+import net.runelite.client.util.ImageUtil;
 import net.runelite.client.util.LinkBrowser;
 import org.apache.hc.core5.http.ParseException;
 import se.michaelthelin.spotify.SpotifyApi;
@@ -28,12 +29,10 @@ import java.util.concurrent.FutureTask;
 
 public class SpotifyInterface extends ProviderInterface
 {
-    public static String CLIENT_ID = "6b1cc33a3c7d460797ce9166b2fd413f";
-    public static String CLIENT_SECRET = "52455d8500d1400b99223cdd15a3221a";
-    public static String REDIRECT_URI = "http://localhost/copyThisUrlEntirely";
-    private final String TOKEN_KEY = "refresh_token";
-
-    public boolean authenticated = false;
+    public final static String CLIENT_ID = "6b1cc33a3c7d460797ce9166b2fd413f";
+    public final static String CLIENT_SECRET = "52455d8500d1400b99223cdd15a3221a";
+    public final static String REDIRECT_URI = "http://localhost/copyThisUrlEntirely";
+    public final static String TOKEN_KEY = "refresh_token";
 
     private PlayingData cachedPlaybackData;
 
@@ -50,20 +49,7 @@ public class SpotifyInterface extends ProviderInterface
     public SpotifyInterface(SpotifyConfig config, ConfigManager configManager)
     {
         super(config, configManager);
-        var savedRefreshToken = configManager.getConfiguration(SpotifyConfig.GROUP, TOKEN_KEY);
-        if (savedRefreshToken != null) {
-            try {
-                spotifyApi.setRefreshToken(savedRefreshToken);
-                var credentials = spotifyApi.authorizationCodeRefresh().refresh_token(savedRefreshToken).build().execute();
-                if (credentials.getAccessToken() == null) {
-                    return;
-                }
-                spotifyApi.setAccessToken(credentials.getAccessToken());
-                authenticated = true;
-            } catch (IOException | SpotifyWebApiException | ParseException e) {
-                e.printStackTrace();
-            }
-        }
+        providerIcon = ImageUtil.loadImageResource(getClass(), "spotify.png");
     }
 
     public void promptUser()
@@ -81,7 +67,7 @@ public class SpotifyInterface extends ProviderInterface
 
             spotifyApi.setAccessToken(credentials.getAccessToken());
             spotifyApi.setRefreshToken(credentials.getRefreshToken());
-            configManager.setConfiguration(SpotifyConfig.GROUP, TOKEN_KEY, credentials.getRefreshToken());
+            config.refreshToken(credentials.getRefreshToken());
             authenticated = true;
             return true;
         } catch (IOException | SpotifyWebApiException | ParseException e) {
@@ -94,6 +80,21 @@ public class SpotifyInterface extends ProviderInterface
     public boolean attemptAuthentication()
     {
         while (!authenticated) {
+            var savedRefreshToken = config.refreshToken();
+            if (savedRefreshToken != null && !savedRefreshToken.isEmpty()) {
+                try {
+                    spotifyApi.setRefreshToken(savedRefreshToken);
+                    var credentials = spotifyApi.authorizationCodeRefresh().refresh_token(savedRefreshToken).build().execute();
+                    if (credentials.getAccessToken() != null) {
+                        spotifyApi.setAccessToken(credentials.getAccessToken());
+                        authenticated = true;
+                        return true;
+                    }
+                } catch (IOException | SpotifyWebApiException | ParseException e) {
+                    e.printStackTrace();
+                }
+            }
+
             promptUser();
             // Ask the user for the url they were sent to
             var input = JOptionPane.showInputDialog("Please paste the URL that spotify redirected you to after authenticating");
@@ -103,6 +104,7 @@ public class SpotifyInterface extends ProviderInterface
             var response = filterResponseUrl(input);
             try {
                 if (exchangeCode(Uri.cast(response))) {
+                    authenticated = true;
                     return true;
                 }
             } catch (URISyntaxException e) {

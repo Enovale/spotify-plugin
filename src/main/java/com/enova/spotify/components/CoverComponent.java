@@ -1,4 +1,4 @@
-package com.enova.spotify;
+package com.enova.spotify.components;
 
 import java.awt.Dimension;
 import java.awt.Graphics2D;
@@ -22,7 +22,7 @@ public class CoverComponent implements LayoutableRenderableEntity
     private Dimension preferredSize = new Dimension();
     private Dimension imageSize;
 
-    CoverComponent(BufferedImage image) {
+    public CoverComponent(BufferedImage image) {
         this.image = image;
         imageSize = new Dimension(image.getWidth(), image.getHeight());
     }
