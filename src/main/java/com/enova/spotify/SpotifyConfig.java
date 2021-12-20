@@ -29,7 +29,7 @@ public interface SpotifyConfig extends Config
 			name = "Music Providers",
 			description = "Select your preferred music player and change their settings.",
 			position = 2,
-			closedByDefault = true
+			closedByDefault = false
 	)
 	String providerSection = "providers";
 
@@ -120,7 +120,63 @@ public interface SpotifyConfig extends Config
 	)
 	default Provider provider() { return Provider.None; }
 
+	@ConfigItem(
+			keyName = "provider",
+			name = "Provider",
+			description = "Which service to retrieve music playing status from",
+			section = providerSection
+	)
+	void provider(Provider provider);
+
 	/* Individual Provider Configuration */
+
+	@ConfigItem(
+			keyName = "client_id",
+			name = "Spotify Client Id",
+			description = "The ClientID of the Spotify Application to connect to.",
+			section = providerSection
+	)
+	default String clientId() { return ""; }
+
+	@ConfigItem(
+			keyName = "client_id",
+			name = "Spotify Client Id",
+			description = "The ClientID of the Spotify Application to connect to.",
+			section = providerSection
+	)
+	void clientId(String str);
+
+	@ConfigItem(
+			keyName = "client_secret",
+			name = "Spotify Client Secret",
+			description = "The Client Secret of the Spotify Application to connect to.",
+			section = providerSection
+	)
+	default String clientSecret() { return ""; }
+
+	@ConfigItem(
+			keyName = "client_secret",
+			name = "Spotify Client Secret",
+			description = "The Client Secret of the Spotify Application to connect to.",
+			section = providerSection
+	)
+	void clientSecret(String str);
+
+	@ConfigItem(
+			keyName = "redirect_url",
+			name = "Spotify Redirect URL",
+			description = "The Redirect URL that you set in the spotify dashboard.",
+			section = providerSection
+	)
+	default String redirectUrl() { return ""; }
+
+	@ConfigItem(
+			keyName = "redirect_url",
+			name = "Spotify Redirect URL",
+			description = "The Redirect URL that you set in the spotify dashboard.",
+			section = providerSection
+	)
+	void redirectUrl(String str);
 
 	@ConfigItem(
 			keyName = SpotifyInterface.TOKEN_KEY,

@@ -1,6 +1,7 @@
 package com.enova.spotify.providers;
 
 import com.enova.spotify.PlayingData;
+import com.enova.spotify.Provider;
 import com.enova.spotify.SpotifyConfig;
 import com.enova.spotify.SpotifyPlugin;
 import com.jogamp.common.net.Uri;
@@ -13,38 +14,25 @@ import se.michaelthelin.spotify.SpotifyHttpManager;
 import se.michaelthelin.spotify.exceptions.SpotifyWebApiException;
 import se.michaelthelin.spotify.exceptions.detailed.ForbiddenException;
 import se.michaelthelin.spotify.model_objects.credentials.AuthorizationCodeCredentials;
-import se.michaelthelin.spotify.model_objects.specification.Image;
 import se.michaelthelin.spotify.requests.authorization.authorization_code.AuthorizationCodeRequest;
 import se.michaelthelin.spotify.requests.authorization.authorization_code.AuthorizationCodeUriRequest;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
-import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.FutureTask;
 
 public class SpotifyInterface extends ProviderInterface
 {
-    public final static String CLIENT_ID = "6b1cc33a3c7d460797ce9166b2fd413f";
-    public final static String CLIENT_SECRET = "52455d8500d1400b99223cdd15a3221a";
-    public final static String REDIRECT_URI = "http://localhost/copyThisUrlEntirely";
     public final static String TOKEN_KEY = "refresh_token";
 
     private PlayingData cachedPlaybackData;
 
-    private final SpotifyApi spotifyApi = new SpotifyApi.Builder()
-            .setClientId(CLIENT_ID)
-            .setClientSecret(CLIENT_SECRET)
-            .setRedirectUri(SpotifyHttpManager.makeUri(REDIRECT_URI))
-            .build();
-    private final AuthorizationCodeUriRequest uriRequest = spotifyApi.authorizationCodeUri()
-            .state("Dunno what to put here lmao")
-            .scope("user-read-playback-state,user-modify-playback-state,user-read-currently-playing")
-            .build();
+    private SpotifyApi spotifyApi;
+    private AuthorizationCodeUriRequest uriRequest;
 
     public SpotifyInterface(SpotifyConfig config, ConfigManager configManager)
     {
@@ -57,7 +45,7 @@ public class SpotifyInterface extends ProviderInterface
         LinkBrowser.browse(uriRequest.execute().toString());
     }
 
-    public boolean exchangeCode(Uri responseUrl)
+    public boolean exchangeCode(Uri responseUrl) throws IOException, ParseException, SpotifyWebApiException
     {
         try {
             var query = responseUrl.query.decode();
@@ -71,14 +59,17 @@ public class SpotifyInterface extends ProviderInterface
             authenticated = true;
             return true;
         } catch (IOException | SpotifyWebApiException | ParseException e) {
-            e.printStackTrace();
-            return false;
+            throw e;
         }
     }
 
     @Override
     public boolean attemptAuthentication()
     {
+        if (!ensureConfigured())
+            return false;
+
+        var prompt = true;
         while (!authenticated) {
             var savedRefreshToken = config.refreshToken();
             if (savedRefreshToken != null && !savedRefreshToken.isEmpty()) {
@@ -95,7 +86,8 @@ public class SpotifyInterface extends ProviderInterface
                 }
             }
 
-            promptUser();
+            if (prompt)
+                promptUser();
             // Ask the user for the url they were sent to
             var input = JOptionPane.showInputDialog("Please paste the URL that spotify redirected you to after authenticating");
             if (input == null || input.isEmpty()) {
@@ -107,11 +99,14 @@ public class SpotifyInterface extends ProviderInterface
                     authenticated = true;
                     return true;
                 }
-            } catch (URISyntaxException e) {
-                if (!SpotifyPlugin.promptUser("The pasted URI could not be exchanged. Please make sure to copy the whole url." +
-                        " Do you need the OAuth page to be reopened?", JOptionPane.ERROR_MESSAGE, "Yes", "No"))
+            } catch (URISyntaxException | IOException | ParseException | SpotifyWebApiException e) {
+                if (!SpotifyPlugin.promptUser(
+                        "The pasted URI could not be exchanged because: " + e.getMessage() +
+                                ". Please make sure to copy the whole url." +
+                                " Do you need the OAuth page to be reopened?", JOptionPane.ERROR_MESSAGE,
+                        "Yes", "No"))
                 {
-                    continue;
+                    prompt = false;
                 }
             }
         }
@@ -119,11 +114,66 @@ public class SpotifyInterface extends ProviderInterface
         return false;
     }
 
+    private boolean ensureConfigured()
+    {
+        if(spotifyApi != null)
+            return true;
+
+        if (!config.clientId().isEmpty() && !config.clientSecret().isEmpty() && !config.redirectUrl().isEmpty()) {
+            createApi();
+            return true;
+        }
+
+        final int result = JOptionPane.showConfirmDialog(null,
+                "Spotify integration will not work unless you create an app on the\n" +
+                        "developer dashboard. Would you like to be redirected to the app creation page?\n" +
+                        "(Make sure your app has a redirect URL set.)",
+                "Spotify Integration", JOptionPane.YES_NO_CANCEL_OPTION);
+        switch (result) {
+            case JOptionPane.YES_OPTION -> LinkBrowser.browse("https://developer.spotify.com/dashboard/applications");
+            case JOptionPane.CANCEL_OPTION -> {
+                config.provider(Provider.None);
+                return false;
+            }
+        }
+
+        var inputId = JOptionPane.showInputDialog("Please paste the client ID provided on the dashboard.");
+        if (inputId == null)
+            return false;
+        config.clientId(inputId);
+        var inputSecret = JOptionPane.showInputDialog("Please paste the client Secret provided on the dashboard.");
+        if (inputSecret == null)
+            return false;
+        config.clientSecret(inputSecret);
+        var inputUrl = JOptionPane.showInputDialog("Please ensure that your app has a redirect url and then paste it here.\n" +
+                "(Put in something like 'https://localhost/blahblah')");
+        if (inputUrl == null)
+            return false;
+        config.redirectUrl(inputUrl);
+
+        createApi();
+        return true;
+    }
+
+    private void createApi()
+    {
+        spotifyApi = new SpotifyApi.Builder()
+                .setClientId(config.clientId())
+                .setClientSecret(config.clientSecret())
+                .setRedirectUri(SpotifyHttpManager.makeUri(config.redirectUrl()))
+                .build();
+        uriRequest = spotifyApi.authorizationCodeUri()
+                .redirect_uri(SpotifyHttpManager.makeUri(config.redirectUrl()))
+                .state("Dunno what to put here lmao")
+                .scope("user-read-playback-state,user-modify-playback-state,user-read-currently-playing")
+                .build();
+    }
+
     private String filterResponseUrl(String inputUrl)
     {
         // Assume the user just pasted the code
-        if (!inputUrl.startsWith(REDIRECT_URI)) {
-            return REDIRECT_URI + "?code=" + inputUrl + "&";
+        if (!inputUrl.startsWith(config.redirectUrl())) {
+            return config.redirectUrl() + "?code=" + inputUrl + "&";
         } else {
             return inputUrl;
         }

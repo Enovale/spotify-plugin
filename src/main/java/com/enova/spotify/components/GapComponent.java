@@ -1,8 +1,6 @@
 package com.enova.spotify.components;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import net.runelite.client.ui.overlay.components.LayoutableRenderableEntity;
 

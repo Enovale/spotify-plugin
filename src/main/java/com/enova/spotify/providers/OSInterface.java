@@ -1,18 +1,16 @@
 package com.enova.spotify.providers;
 
 import com.enova.spotify.PlayingData;
+import com.enova.spotify.Provider;
 import com.enova.spotify.SpotifyConfig;
 import net.runelite.client.config.ConfigManager;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
-import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
-import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.concurrent.FutureTask;
 
@@ -55,10 +53,19 @@ public class OSInterface extends ProviderInterface
                 case 0 -> {
                     authenticated = !runCmd("playerctl").isEmpty();
 
+                    if(!authenticated) {
+                        JOptionPane.showMessageDialog(null,
+                                "Playerctl does not appear to be installed or in your PATH.\n" +
+                                        "Please refer to https://github.com/altdesktop/playerctl.",
+                                "SpotifyPlugin Configuration", JOptionPane.ERROR_MESSAGE);
+                        config.provider(Provider.None);
+                        return false;
+                    }
+
                     if(!config.daemonPrompt()) {
                         var choice = JOptionPane.showConfirmDialog(null,
                                 "Do you want playerctl's daemon to be autolaunched " +
-                                        "whenever the plugin is started up in order to improve media detection? " +
+                                        "in order to improve media detection?\n" +
                                         "(Refer to https://github.com/altdesktop/playerctl for more details)",
                                 "SpotifyPlugin Confirmation", JOptionPane.YES_NO_OPTION);
                         config.playerCtlDaemon(choice == 0);

@@ -146,7 +146,7 @@ public class SpotifyPlugin extends Plugin
         else
             overlayManager.remove(overlay);
 
-        if(config.mediaControls()) {
+        if(config.mediaControls() && provider.authenticated) {
             clientToolbar.addNavigation(backButton);
             clientToolbar.addNavigation(pauseButton);
             clientToolbar.addNavigation(skipButton);

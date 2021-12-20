@@ -6,7 +6,6 @@ import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import net.runelite.client.ui.overlay.components.LayoutableRenderableEntity;
 
