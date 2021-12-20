@@ -181,7 +181,7 @@ public class SpotifyPlugin extends Plugin
 
         try {
             if (currentApiCall != null && currentApiCall.isDone()) {
-                PlayingData playback = currentApiCall.get();
+                PlayingData playback = currentApiCall.get(5, TimeUnit.SECONDS);
                 if(config.treatPausedAsStopped() && (playback != null && playback.paused)) {
                     playback = null;
                 }
@@ -205,7 +205,7 @@ public class SpotifyPlugin extends Plugin
         } catch(CancellationException e) {
             currentApiCall = null;
             return;
-        } catch (ExecutionException | InterruptedException e) {
+        } catch (TimeoutException | ExecutionException | InterruptedException e) {
             e.printStackTrace();
         }
     }
