@@ -10,6 +10,7 @@ import javax.inject.Inject;
 import javax.swing.*;
 
 import lombok.extern.slf4j.Slf4j;
+import lombok.var;
 import net.runelite.api.*;
 import net.runelite.api.events.*;
 import net.runelite.client.config.ConfigManager;
@@ -113,9 +114,15 @@ public class SpotifyPlugin extends Plugin
             currentApiCall.cancel(true);
         }
         switch (config.provider()) {
-            case None -> provider = new NoProviderInterface(config, configManager);
-            case OperatingSystem -> provider = new OSInterface(config, configManager);
-            case Spotify -> provider = new SpotifyInterface(config, configManager);
+            case None:
+                provider = new NoProviderInterface(config, configManager);
+                break;
+            case OperatingSystem:
+                provider = new OSInterface(config, configManager);
+                break;
+            case Spotify:
+                provider = new SpotifyInterface(config, configManager);
+                break;
         }
     }
 
@@ -130,11 +137,13 @@ public class SpotifyPlugin extends Plugin
     {
         if (event.getGroup().equals(SpotifyConfig.GROUP)) {
             switch (event.getKey()) {
-                case "firstrun" -> performFirstRun();
-                case "provider" -> {
+                case "firstrun":
+                    performFirstRun();
+                    break;
+                case "provider":
                     createProviderInstance();
                     provider.attemptAuthentication();
-                }
+                    break;
             }
             updateConfig();
         }
@@ -172,7 +181,7 @@ public class SpotifyPlugin extends Plugin
 
         try {
             if (currentApiCall != null && currentApiCall.isDone()) {
-                var playback = currentApiCall.get();
+                PlayingData playback = currentApiCall.get();
                 if(config.treatPausedAsStopped() && (playback != null && playback.paused)) {
                     playback = null;
                 }

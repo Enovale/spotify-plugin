@@ -3,6 +3,8 @@ package com.enova.spotify.providers;
 import com.enova.spotify.PlayingData;
 import com.enova.spotify.Provider;
 import com.enova.spotify.SpotifyConfig;
+import lombok.val;
+import lombok.var;
 import net.runelite.client.config.ConfigManager;
 
 import javax.imageio.ImageIO;
@@ -30,7 +32,7 @@ public class OSInterface extends ProviderInterface
     {
         super(config, configManager);
 
-        var os = System.getProperty("os.name");
+        val os = System.getProperty("os.name");
         if (os.startsWith("Linux")) {
             OsType = 0;
         } else if (os.startsWith("Windows")) {
@@ -50,10 +52,9 @@ public class OSInterface extends ProviderInterface
 
         try {
             switch (OsType) {
-                case 0 -> {
+                case 0:
                     authenticated = !runCmd("playerctl").isEmpty();
-
-                    if(!authenticated) {
+                    if (!authenticated) {
                         JOptionPane.showMessageDialog(null,
                                 "Playerctl does not appear to be installed or in your PATH.\n" +
                                         "Please refer to https://github.com/altdesktop/playerctl.",
@@ -61,9 +62,8 @@ public class OSInterface extends ProviderInterface
                         config.provider(Provider.None);
                         return false;
                     }
-
-                    if(!config.daemonPrompt()) {
-                        var choice = JOptionPane.showConfirmDialog(null,
+                    if (!config.daemonPrompt()) {
+                        val choice = JOptionPane.showConfirmDialog(null,
                                 "Do you want playerctl's daemon to be autolaunched " +
                                         "in order to improve media detection?\n" +
                                         "(Refer to https://github.com/altdesktop/playerctl for more details)",
@@ -71,15 +71,14 @@ public class OSInterface extends ProviderInterface
                         config.playerCtlDaemon(choice == 0);
                         config.daemonPrompt(true);
                     }
-
                     Boolean daemonEnabled = configManager.getConfiguration(SpotifyConfig.GROUP, DAEMON_KEY, Boolean.class);
-                    if(daemonEnabled) {
+                    if (daemonEnabled) {
                         runCmd("playerctld", "daemon");
                     }
-                }
-                default -> {
+                    break;
+                default:
                     authenticated = false;
-                }
+                    break;
             }
         } catch (IOException e) {
             authenticated = false;
@@ -93,11 +92,11 @@ public class OSInterface extends ProviderInterface
         return new FutureTask<>(() -> {
             try {
                 switch (OsType) {
-                    case 0 -> {
-                        var allData = runCmd("playerctl", "metadata", "--format",
+                    case 0:
+                        val allData = runCmd("playerctl", "metadata", "--format",
                                 "{{status}}\n{{markup_escape(mpris:artUrl)}}\n{{album}}\n{{title}}\n{{position}}\n{{mpris:length}}\nend")
                                 .split("\n");
-                        if(allData.length  <= 6) {
+                        if (allData.length <= 6) {
                             return null;
                         }
                         return new PlayingData(!allData[0].equals("Playing"),
@@ -108,10 +107,8 @@ public class OSInterface extends ProviderInterface
                                 allData[3],
                                 allData[4].isEmpty() ? 0 : (int) (Long.parseLong(allData[4]) / 1000),
                                 allData[5].isEmpty() ? 0 : (int) (Long.parseLong(allData[5]) / 1000));
-                    }
-                    default -> {
+                    default:
                         return null;
-                    }
                 }
             } catch (IOException e) {
                 e.printStackTrace();

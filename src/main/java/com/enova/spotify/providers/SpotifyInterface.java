@@ -5,6 +5,8 @@ import com.enova.spotify.Provider;
 import com.enova.spotify.SpotifyConfig;
 import com.enova.spotify.SpotifyPlugin;
 import com.jogamp.common.net.Uri;
+import lombok.val;
+import lombok.var;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.util.ImageUtil;
 import net.runelite.client.util.LinkBrowser;
@@ -48,8 +50,8 @@ public class SpotifyInterface extends ProviderInterface
     public boolean exchangeCode(Uri responseUrl) throws IOException, ParseException, SpotifyWebApiException
     {
         try {
-            var query = responseUrl.query.decode();
-            var parsedCode = query.split("&")[0].split("=")[1];
+            val query = responseUrl.query.decode();
+            val parsedCode = query.split("&")[0].split("=")[1];
             final AuthorizationCodeRequest request = spotifyApi.authorizationCode(parsedCode).build();
             final AuthorizationCodeCredentials credentials = request.execute();
 
@@ -69,13 +71,13 @@ public class SpotifyInterface extends ProviderInterface
         if (!ensureConfigured())
             return false;
 
-        var prompt = true;
+        boolean prompt = true;
         while (!authenticated) {
-            var savedRefreshToken = config.refreshToken();
+            val savedRefreshToken = config.refreshToken();
             if (savedRefreshToken != null && !savedRefreshToken.isEmpty()) {
                 try {
                     spotifyApi.setRefreshToken(savedRefreshToken);
-                    var credentials = spotifyApi.authorizationCodeRefresh().refresh_token(savedRefreshToken).build().execute();
+                    val credentials = spotifyApi.authorizationCodeRefresh().refresh_token(savedRefreshToken).build().execute();
                     if (credentials.getAccessToken() != null) {
                         spotifyApi.setAccessToken(credentials.getAccessToken());
                         authenticated = true;
@@ -89,11 +91,11 @@ public class SpotifyInterface extends ProviderInterface
             if (prompt)
                 promptUser();
             // Ask the user for the url they were sent to
-            var input = JOptionPane.showInputDialog("Please paste the URL that spotify redirected you to after authenticating");
+            val input = JOptionPane.showInputDialog("Please paste the URL that spotify redirected you to after authenticating");
             if (input == null || input.isEmpty()) {
                 return false;
             }
-            var response = filterResponseUrl(input);
+            val response = filterResponseUrl(input);
             try {
                 if (exchangeCode(Uri.cast(response))) {
                     authenticated = true;
@@ -130,22 +132,23 @@ public class SpotifyInterface extends ProviderInterface
                         "(Make sure your app has a redirect URL set.)",
                 "Spotify Integration", JOptionPane.YES_NO_CANCEL_OPTION);
         switch (result) {
-            case JOptionPane.YES_OPTION -> LinkBrowser.browse("https://developer.spotify.com/dashboard/applications");
-            case JOptionPane.CANCEL_OPTION -> {
+            case JOptionPane.YES_OPTION:
+                LinkBrowser.browse("https://developer.spotify.com/dashboard/applications");
+                break;
+            case JOptionPane.CANCEL_OPTION:
                 config.provider(Provider.None);
                 return false;
-            }
         }
 
-        var inputId = JOptionPane.showInputDialog("Please paste the client ID provided on the dashboard.");
+        val inputId = JOptionPane.showInputDialog("Please paste the client ID provided on the dashboard.");
         if (inputId == null)
             return false;
         config.clientId(inputId);
-        var inputSecret = JOptionPane.showInputDialog("Please paste the client Secret provided on the dashboard.");
+        val inputSecret = JOptionPane.showInputDialog("Please paste the client Secret provided on the dashboard.");
         if (inputSecret == null)
             return false;
         config.clientSecret(inputSecret);
-        var inputUrl = JOptionPane.showInputDialog("Please ensure that your app has a redirect url and then paste it here.\n" +
+        val inputUrl = JOptionPane.showInputDialog("Please ensure that your app has a redirect url and then paste it here.\n" +
                 "(Put in something like 'https://localhost/blahblah')");
         if (inputUrl == null)
             return false;
@@ -184,7 +187,7 @@ public class SpotifyInterface extends ProviderInterface
     {
         return new FutureTask<>(() -> {
             try {
-                var currentPlayback = spotifyApi.getInformationAboutUsersCurrentPlayback().additionalTypes("track,episode").build().execute();
+                val currentPlayback = spotifyApi.getInformationAboutUsersCurrentPlayback().additionalTypes("track,episode").build().execute();
                 if (currentPlayback == null || currentPlayback.getItem() == null || currentPlayback.getItem().getId() == null) {
                     return null;
                 }
@@ -198,25 +201,24 @@ public class SpotifyInterface extends ProviderInterface
                 String albumName;
                 String artUrl;
                 switch (currentPlayback.getCurrentlyPlayingType()) {
-                    case TRACK -> {
-                        var track = spotifyApi.getTrack(currentPlayback.getItem().getId()).build().execute();
+                    case TRACK:
+                        val track = spotifyApi.getTrack(currentPlayback.getItem().getId()).build().execute();
                         trackName = track.getName();
-                        var album = track.getAlbum();
+                        val album = track.getAlbum();
                         albumName = album.getName();
                         artUrl = album.getImages()[0].getUrl();
-                    }
-                    case EPISODE -> {
-                        var track = spotifyApi.getEpisode(currentPlayback.getItem().getId()).build().execute();
-                        trackName = track.getName();
-                        var show = track.getShow();
+                        break;
+                    case EPISODE:
+                        val episode = spotifyApi.getEpisode(currentPlayback.getItem().getId()).build().execute();
+                        trackName = episode.getName();
+                        val show = episode.getShow();
                         albumName = show.getName();
                         artUrl = show.getImages()[0].getUrl();
-                    }
-                    default -> {
+                        break;
+                    default:
                         return null;
-                    }
                 }
-                var result = new PlayingData(
+                val result = new PlayingData(
                         !currentPlayback.getIs_playing(),
                         currentPlayback.getTimestamp(),
                         ImageIO.read(new URL(artUrl)),

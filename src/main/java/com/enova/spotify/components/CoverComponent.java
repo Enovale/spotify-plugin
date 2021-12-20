@@ -7,6 +7,8 @@ import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.val;
+import lombok.var;
 import net.runelite.client.ui.overlay.components.LayoutableRenderableEntity;
 
 @Setter
@@ -34,7 +36,7 @@ public class CoverComponent implements LayoutableRenderableEntity
             return null;
         }
 
-        var realSize = new Dimension(Math.max(imageSize.width, preferredSize.width), Math.max(imageSize.height, preferredSize.height));
+        val realSize = new Dimension(Math.max(imageSize.width, preferredSize.width), Math.max(imageSize.height, preferredSize.height));
         graphics.drawImage(image,
                 preferredLocation.x + ((preferredSize.width - imageSize.width) / 2),
                 preferredLocation.y,
