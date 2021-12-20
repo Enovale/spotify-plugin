@@ -32,6 +32,7 @@ public class SpotifyInterface extends ProviderInterface
     public final static String TOKEN_KEY = "refresh_token";
 
     private PlayingData cachedPlaybackData;
+    private String cachedDeviceId;
 
     private SpotifyApi spotifyApi;
     private AuthorizationCodeUriRequest uriRequest;
@@ -191,6 +192,7 @@ public class SpotifyInterface extends ProviderInterface
                 if (currentPlayback == null || currentPlayback.getItem() == null || currentPlayback.getItem().getId() == null) {
                     return null;
                 }
+                cachedDeviceId = currentPlayback.getDevice().getId();
                 if (cachedPlaybackData != null && currentPlayback.getItem().getId().equals(cachedPlaybackData.trackId)) {
                     cachedPlaybackData.paused = !currentPlayback.getIs_playing();
                     cachedPlaybackData.timestamp = currentPlayback.getTimestamp();
@@ -241,7 +243,10 @@ public class SpotifyInterface extends ProviderInterface
     public void back()
     {
         try {
-            spotifyApi.skipUsersPlaybackToPreviousTrack().build().execute();
+            val request = spotifyApi.skipUsersPlaybackToPreviousTrack();
+            if(cachedDeviceId != null)
+                request.device_id(cachedDeviceId);
+            request.build().execute();
         } catch (IOException | SpotifyWebApiException | ParseException e) {
             e.printStackTrace();
         }
@@ -259,9 +264,15 @@ public class SpotifyInterface extends ProviderInterface
             }
 
             if (playing) {
-                spotifyApi.pauseUsersPlayback().build().execute();
+                val request = spotifyApi.pauseUsersPlayback();
+                if(cachedDeviceId != null)
+                    request.device_id(cachedDeviceId);
+                request.build().execute();
             } else {
-                spotifyApi.startResumeUsersPlayback().build().execute();
+                val request = spotifyApi.startResumeUsersPlayback();
+                if(cachedDeviceId != null)
+                    request.device_id(cachedDeviceId);
+                request.build().execute();
             }
             return !playing;
         } catch (ForbiddenException e) {
@@ -276,7 +287,10 @@ public class SpotifyInterface extends ProviderInterface
     public void skip()
     {
         try {
-            spotifyApi.skipUsersPlaybackToNextTrack().build().execute();
+            val request = spotifyApi.skipUsersPlaybackToNextTrack();
+            if(cachedDeviceId != null)
+                request.device_id(cachedDeviceId);
+            request.build().execute();
         } catch (IOException | SpotifyWebApiException | ParseException e) {
             e.printStackTrace();
         }
