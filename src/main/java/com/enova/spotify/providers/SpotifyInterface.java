@@ -5,19 +5,16 @@ import com.enova.spotify.Provider;
 import com.enova.spotify.SpotifyConfig;
 import com.enova.spotify.SpotifyPlugin;
 import com.jogamp.common.net.Uri;
+import com.wrapper.spotify.SpotifyApi;
+import com.wrapper.spotify.SpotifyHttpManager;
+import com.wrapper.spotify.exceptions.SpotifyWebApiException;
+import com.wrapper.spotify.exceptions.detailed.ForbiddenException;
+import com.wrapper.spotify.requests.authorization.authorization_code.AuthorizationCodeUriRequest;
 import lombok.val;
-import lombok.var;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.util.ImageUtil;
 import net.runelite.client.util.LinkBrowser;
 import org.apache.hc.core5.http.ParseException;
-import se.michaelthelin.spotify.SpotifyApi;
-import se.michaelthelin.spotify.SpotifyHttpManager;
-import se.michaelthelin.spotify.exceptions.SpotifyWebApiException;
-import se.michaelthelin.spotify.exceptions.detailed.ForbiddenException;
-import se.michaelthelin.spotify.model_objects.credentials.AuthorizationCodeCredentials;
-import se.michaelthelin.spotify.requests.authorization.authorization_code.AuthorizationCodeRequest;
-import se.michaelthelin.spotify.requests.authorization.authorization_code.AuthorizationCodeUriRequest;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -55,8 +52,8 @@ public class SpotifyInterface extends ProviderInterface
         try {
             val query = responseUrl.query.decode();
             val parsedCode = query.split("&")[0].split("=")[1];
-            final AuthorizationCodeRequest request = spotifyApi.authorizationCode(parsedCode).build();
-            final AuthorizationCodeCredentials credentials = request.execute();
+            val request = spotifyApi.authorizationCode(parsedCode).build();
+            val credentials = request.execute();
 
             spotifyApi.setAccessToken(credentials.getAccessToken());
             spotifyApi.setRefreshToken(credentials.getRefreshToken());

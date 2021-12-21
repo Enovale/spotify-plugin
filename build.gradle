@@ -23,7 +23,7 @@ dependencies {
 	testImplementation group: 'net.runelite', name:'jshell', version: runeLiteVersion
 
 	/* Actual user dependencies */
-	implementation 'se.michaelthelin.spotify:spotify-web-api-java:7.0.0'
+	implementation 'se.michaelthelin.spotify:spotify-web-api-java:6.5.4'
 }
 
 group = 'com.spotify'
